@@ -1,52 +1,43 @@
-def discover(target, candidates):
-    results = []
+from agency_discovery import discover_agencies
 
-    for candidate in candidates:
 
-        searchable_text = (
-            candidate["name"] +
-            " " +
-            candidate["category"] +
-            " " +
-            candidate["location"]
-        )
+def run(query):
+    agencies = discover_agencies(query)
 
-        if target.lower() in searchable_text.lower():
-
-            results.append({
-                "name": candidate["name"],
-                "website": candidate["website"],
-                "location": candidate["location"],
-                "category": candidate["category"],
-                "source": candidate["source"]
-            })
-
-    return results
+    return {
+        "query": query,
+        "agencies_found": len(agencies),
+        "agencies": agencies
+    }
 
 
 if __name__ == "__main__":
 
-    candidates = [
-        {
-            "name": "Example SEO Agency",
-            "website": "https://example.com",
-            "location": "Austin, Texas",
-            "category": "SEO Agency",
-            "source": "manual"
-        },
-        {
-            "name": "Complete SEO",
-            "website": "https://completeseo.com",
-            "location": "Austin, Texas",
-            "category": "SEO Agency",
-            "source": "manual"
-        }
-    ]
-
-    prospects = discover(
-        "SEO Agency",
-        candidates
+    result = run(
+        "restoration marketing agency texas"
     )
 
-    for prospect in prospects:
-        print(prospect)
+    print("\n=== BEACON PROSPECTA ===\n")
+
+    print(
+        f"Query: {result['query']}"
+    )
+
+    print(
+        f"Agencies Found: {result['agencies_found']}\n"
+    )
+
+    for agency in result["agencies"]:
+
+        print(
+            {
+                "name":
+                    agency["name"],
+
+                "website":
+                    agency["website"],
+
+                "source":
+                    agency["source"]
+            }
+        )
