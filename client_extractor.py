@@ -1,14 +1,27 @@
-import re
 import requests
 from bs4 import BeautifulSoup
+import re
 
 
-def extract_clients(urls):
+def extract_clients(discovered_pages):
     clients = []
 
-    for item in urls:
+    business_suffixes = [
+        "LLC",
+        "Inc",
+        "Company",
+        "Services",
+        "Group",
+        "Solutions",
+        "Restoration",
+        "Roofing",
+        "Plumbing",
+        "HVAC"
+    ]
 
-        url = item["url"]
+    for page in discovered_pages:
+
+        url = page["url"]
 
         try:
             response = requests.get(
@@ -26,36 +39,79 @@ def extract_clients(urls):
                 "html.parser"
             )
 
-            text = soup.get_text(
-                separator=" ",
-                strip=True
+            candidates = []
+
+            # Look at headings first
+            for tag in ["h1", "h2", "h3"]:
+
+                for node in soup.find_all(tag):
+
+                    text = node.get_text(
+                        strip=True
+                    )
+
+                    if len(text) < 3:
+                        continue
+
+                    candidates.append(text)
+
+            # Look for likely business entities
+            for candidate in candidates:
+
+                for suffix in business_suffixes:
+
+                    if suffix.lower() in candidate.lower():
+
+                        clients.append({
+                            "name": candidate,
+                            "source_page": url,
+                            "confidence": 70
+                        })
+
+                        break
+
+            # De-duplicate
+            unique = {}
+
+            for client in clients:
+
+                unique[
+                    client["name"]
+                ] = client
+
+            clients = list(
+                unique.values()
             )
-
-            patterns = [
-                r"Client:\s*([A-Z][A-Za-z0-9 &\-]+)",
-                r"Customer:\s*([A-Z][A-Za-z0-9 &\-]+)",
-                r"Worked with\s*([A-Z][A-Za-z0-9 &\-]+)",
-                r"Case Study:\s*([A-Z][A-Za-z0-9 &\-]+)"
-            ]
-
-            for pattern in patterns:
-
-                matches = re.findall(
-                    pattern,
-                    text
-                )
-
-                for match in matches:
-
-                    clients.append({
-                        "name": match.strip(),
-                        "source_page": url
-                    })
 
         except Exception as error:
 
             print(
-                f"Error reading {url}: {error}"
+                f"Failed to process {url}"
             )
 
+            print(error)
+
     return clients
+
+
+if __name__ == "__main__":
+
+    discovered_pages = [
+        {
+            "url":
+            "https://completeseo.com/case-studies/",
+            "type":
+            "case-study"
+        }
+    ]
+
+    clients = extract_clients(
+        discovered_pages
+    )
+
+    print(
+        "\n=== CLIENTS FOUND ===\n"
+    )
+
+    for client in clients:
+        print(client)
