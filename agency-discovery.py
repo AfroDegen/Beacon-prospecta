@@ -1,60 +1,72 @@
-from urllib.parse import urljoin
+import os
 import requests
-from bs4 import BeautifulSoup
 
 
-DISCOVERY_PATTERNS = [
-    "case-study",
-    "case-studies",
-    "portfolio",
-    "clients",
-    "projects",
-    "testimonials",
-    "success",
-    "results",
-    "industries",
-    "work"
-]
+SERPAPI_URL = "https://serpapi.com/search.json"
 
 
-def discover_pages(agency_url):
+def discover_agencies(query):
+    """
+    Discover agencies from Google search results
+    using SerpAPI.
+    """
+
+    api_key = os.getenv("SERPAPI_KEY")
+
+    if not api_key:
+        raise ValueError(
+            "SERPAPI_KEY environment variable not found."
+        )
+
     response = requests.get(
-        agency_url,
-        timeout=15,
-        headers={
-            "User-Agent": "Beacon Prospecta"
-        }
+        SERPAPI_URL,
+        params={
+            "engine": "google",
+            "q": query,
+            "api_key": api_key
+        },
+        timeout=30
     )
 
     response.raise_for_status()
 
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
+    data = response.json()
 
-    discovered = []
+    agencies = []
 
-    for link in soup.find_all("a", href=True):
+    for result in data.get(
+        "organic_results",
+        []
+    )[:10]:
 
-        href = link["href"]
+        agencies.append(
+            {
+                "name": result.get(
+                    "title",
+                    "Unknown Agency"
+                ),
 
-        absolute_url = urljoin(
-            agency_url,
-            href
+                "website": result.get(
+                    "link",
+                    ""
+                ),
+
+                "location": "Unknown",
+
+                "category": "Agency",
+
+                "source": "serpapi"
+            }
         )
 
-        href_lower = href.lower()
+    return agencies
 
-        for pattern in DISCOVERY_PATTERNS:
 
-            if pattern in href_lower:
+if __name__ == "__main__":
 
-                discovered.append({
-                    "url": absolute_url,
-                    "type": pattern
-                })
+    agencies = discover_agencies(
+        "restoration marketing agency texas"
+    )
 
-                break
-
-    return discovered
+    for agency in agencies:
+        print(agency)
