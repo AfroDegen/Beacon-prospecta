@@ -22,5 +22,7 @@ jobs:
           pip install beautifulsoup4
 
       - name: Run Prospecta
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
         run: |
           python beacon.py
